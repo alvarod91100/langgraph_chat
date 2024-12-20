@@ -7,5 +7,5 @@ while user_question != "exit":
     inputs = {"question": user_question}
     for output in app.stream(inputs):
         for key, value in output.items():
-            pprint(f"Finished running: {key}:")
+            print(f"---Finished running: {key}---")
     pprint(value["generation"])

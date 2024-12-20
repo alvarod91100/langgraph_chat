@@ -130,5 +130,7 @@ def grade_generation_v_documents_and_question(state):
             print("---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
             return "not useful"
     else:
+        pprint(f"grade: {grade}")
         pprint("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
+        pprint(f"Documents retrieved: {documents}")
         return "not supported"
