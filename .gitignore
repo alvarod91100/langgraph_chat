@@ -1,6 +1,8 @@
 # Custom
 tests.ipynb
 models/
+chroma.sqlite3
+local/data/embeddings/database/chroma/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

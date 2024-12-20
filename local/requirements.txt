@@ -46,3 +46,4 @@ gpt4all
 langchain-text-splitters
 ollama
 langchain-huggingface
+langchain-ollama
