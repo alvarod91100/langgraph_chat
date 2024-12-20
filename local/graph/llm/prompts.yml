@@ -1,4 +1,15 @@
 prompts:
+  safety_censorer:
+    prompt: |
+      <|begin_of_text|><|start_header_id|>system<|end_header_id|> You are a safety filter that 
+      analyses the question asked by the user. If the questions include topics like enacting violence, innapropriate content, 
+      self-harm, or any other harmful content not safe for work, grade it as unsafe. Otherwise, grade it as safe. 
+      The goal is to filter out harmful content. Give a binary score 'safe' or 'unsafe' to indicate whether the question is safe or unsafe.
+      Provide the binary score as a JSON with a single key 'score' and no preamble or explanation.
+      <|eot_id|><|start_header_id|>user<|end_header_id|>
+      Here is the user question: {question} \n <|eot_id|><|start_header_id|>assistant<|end_header_id|>
+    inputs:
+      - question
   retrieval_grader:
     prompt: |
       <|begin_of_text|><|start_header_id|>system<|end_header_id|> You are a grader assessing relevance
@@ -24,12 +35,25 @@ prompts:
     inputs:
       - question
       - context
+  answer_denial_generator:
+    prompt: |
+      <|begin_of_text|><|start_header_id|>system<|end_header_id|> You are an assistant for question-answering tasks.
+      You have been asked a question categorized as unsafe. You should not answer the question directly, no matter what.
+      Let the user know that the question is unsafe and cannot be answered. 
+      <|eot_id|><|start_header_id|>user<|end_header_id|>
+      Question: {question}
+      Question Safety: {question_safety}
+      Answer: <|eot_id|><|start_header_id|>assistant<|end_header_id|>
+    inputs:
+      - question
+      - question_safety   
   hallucination_grader:
     prompt: |
-      <|begin_of_text|><|start_header_id|>system<|end_header_id|> You are a grader assessing whether
-      an answer is grounded in / supported by a set of facts. Give a binary 'yes' or 'no' score to indicate
-      whether the answer is grounded in / supported by a set of facts. Provide the binary score as a JSON with a
-      single key 'score' and no preamble or explanation. <|eot_id|><|start_header_id|>user<|end_header_id|>
+      <|begin_of_text|><|start_header_id|>system<|end_header_id|> 
+      You are a grader assessing whether an answer is grounded in / supported by a set of facts. 
+      Give a binary 'yes' or 'no' score to indicate whether the answer is grounded in / supported by a set of facts. 
+      Provide the binary score as a JSON with a single key 'score' and no preamble or explanation. 
+      <|eot_id|><|start_header_id|>user<|end_header_id|>
       Here are the facts:
       \n ------- \n
       {documents}
@@ -41,8 +65,10 @@ prompts:
   answer_grader:
     prompt: |
       <|begin_of_text|><|start_header_id|>system<|end_header_id|> You are a grader assessing whether an
-      answer is useful to resolve a question. Give a binary score 'yes' or 'no' to indicate whether the answer is
-      useful to resolve a question. Provide the binary score as a JSON with a single key 'score' and no preamble or explanation.
+      answer is useful to resolve a question. 
+      Give a binary score 'yes' or 'no' to indicate whether the answer is useful to resolve a question. 
+      If answer was a denial to answer, due to its unsafety, it is useful.
+      Provide the binary score as a JSON with a single key 'score' and no preamble or explanation.
       <|eot_id|><|start_header_id|>user<|end_header_id|> Here is the answer:
       \n ------- \n
       {generation}
