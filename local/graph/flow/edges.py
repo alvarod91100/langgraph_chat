@@ -12,10 +12,35 @@ from ..llm.llm_chains import (
     answer_generator_chain,
     hallucination_grader_chain,
     answer_grader_chain,
-    source_router_chain
+    source_router_chain, 
+    safety_censorer_chain
 )
 
 retriever = vector_store.as_retriever()
+
+# Conditional Edge: they route the flow of the graph
+def safety_check_question(state):
+    """
+    Deny question if it is unsafe
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        str: Next node to call
+    """
+
+    print("---CHECKING QUESTION SAFETY---")
+    question = state["question"]
+    score = safety_censorer_chain.invoke({"question": question})
+    # the if statement adds some unchangeable structure to the edge 
+    # We cannot just return the answer of the chain becasue of possible irregularities in answers.
+    if score["score"] == "safe":
+        print("---QUESTION IS SAFE---")
+        return "safe"
+    else:
+        print("---QUESTION IS UNSAFE---")
+        return "unsafe"
 
 # Conditional Edges
 def route_question(state):
@@ -29,17 +54,14 @@ def route_question(state):
         str: Next node to call
     """
 
-    print("---ROUTE QUESTION---")
+    print("---ROUTING QUESTION---")
     question = state["question"]
-    print(question)
     source = source_router_chain.invoke({"question": question})
-    print(source)
-    print(source["datasource"])
     if source["datasource"] == "web_search":
-        print("---ROUTE QUESTION TO WEB SEARCH---")
+        print("---ROUTED QUESTION TO WEB SEARCH---")
         return "websearch"
     elif source["datasource"] == "vectorstore":
-        print("---ROUTE QUESTION TO RAG---")
+        print("---ROUTED QUESTION TO RAG---")
         return "vectorstore"
 
 
@@ -54,7 +76,7 @@ def decide_to_generate(state):
         str: Binary decision for next node to call
     """
 
-    print("---ASSESS GRADED DOCUMENTS---")
+    print("---ASSESSING GRADED DOCUMENTS---")
     state["question"]
     web_search = state["web_search"]
     state["documents"]
@@ -84,7 +106,7 @@ def grade_generation_v_documents_and_question(state):
         str: Decision for next node to call
     """
 
-    print("---CHECK HALLUCINATIONS---")
+    print("---CHECKING HALLUCINATIONS---")
     question = state["question"]
     documents = state["documents"]
     generation = state["generation"]

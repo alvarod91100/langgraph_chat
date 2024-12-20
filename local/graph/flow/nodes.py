@@ -5,15 +5,17 @@ from embeddings.chroma import (
 from ..llm.llm_chains import (
     retrieval_grader_chain, 
     answer_generator_chain,
+    answer_denial_generator_chain,
     hallucination_grader_chain,
     answer_grader_chain,
-    source_router_chain
+    source_router_chain, 
+    safety_censorer_chain,
 )
 from ..llm.tools import web_search_tool
 
 retriever = vector_store.as_retriever()
 
-# Nodes
+# Nodes: they affect the state of the graph
 def retrieve(state):
     """
     Retrieve documents from vectorstore
@@ -31,6 +33,33 @@ def retrieve(state):
     documents = retriever.invoke(question)
     return {"documents": documents, "question": question}
 
+def set_question_safe(state):
+    """
+    Grade question safety
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        state (dict): New key added to state, safety, that contains LLM generation
+    """
+    question = state["question"]
+    question_safety = "safe"
+    return {"question": question, "question_safety": question_safety}
+
+def set_question_unsafe(state):
+    """
+    Grade question safety
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        state (dict): New key added to state, safety, that contains LLM generation
+    """
+    question = state["question"]
+    question_safety = "unsafe"
+    return {"question": question, "question_safety": question_safety}
 
 def generate(state):
     """
@@ -49,6 +78,23 @@ def generate(state):
     # RAG generation
     generation = answer_generator_chain.invoke({"context": documents, "question": question})
     return {"documents": documents, "question": question, "generation": generation}
+
+def generate_denial(state):
+    """
+    Generate answer using RAG on retrieved documents
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        state (dict): New key added to state, generation, that contains LLM generation
+    """
+    print("---GENERATING DENIAL---")
+    question = state["question"]
+    question_safety = state["question_safety"]
+
+    generation = answer_denial_generator_chain.invoke({"question": question, "question_safety": question_safety})
+    return {"question": question, "generation": generation}
 
 
 def grade_documents(state):
@@ -102,7 +148,7 @@ def web_search(state):
 
     print("---WEB SEARCH---")
     question = state["question"]
-    documents = state["documents"]
+    documents = state.get("documents", [])
 
     # Web search
     docs = web_search_tool.invoke({"query": question})
@@ -113,60 +159,3 @@ def web_search(state):
     else:
         documents = [web_results]
     return {"documents": documents, "question": question}
-
-
-# Conditional edge
-
-
-def route_question(state):
-    """
-    Route question to web search or RAG.
-
-    Args:
-        state (dict): The current graph state
-
-    Returns:
-        str: Next node to call
-    """
-
-    print("---ROUTE QUESTION---")
-    question = state["question"]
-    print(question)
-    source = source_router_chain.invoke({"question": question})
-    print(source)
-    print(source["datasource"])
-    if source["datasource"] == "web_search":
-        print("---ROUTE QUESTION TO WEB SEARCH---")
-        return "websearch"
-    elif source["datasource"] == "vectorstore":
-        print("---ROUTE QUESTION TO RAG---")
-        return "vectorstore"
-
-
-def decide_to_generate(state):
-    """
-    Determines whether to generate an answer, or add web search
-
-    Args:
-        state (dict): The current graph state
-
-    Returns:
-        str: Binary decision for next node to call
-    """
-
-    print("---ASSESS GRADED DOCUMENTS---")
-    state["question"]
-    web_search = state["web_search"]
-    state["documents"]
-
-    if web_search == "Yes":
-        # All documents have been filtered check_relevance
-        # We will re-generate a new query
-        print(
-            "---DECISION: ALL DOCUMENTS ARE NOT RELEVANT TO QUESTION, INCLUDE WEB SEARCH---"
-        )
-        return "websearch"
-    else:
-        # We have relevant documents, so generate answer
-        print("---DECISION: GENERATE---")
-        return "generate"

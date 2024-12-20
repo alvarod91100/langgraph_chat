@@ -4,13 +4,15 @@ import time
 from langchain_core.documents import Document
 from typing_extensions import TypedDict
 from IPython.display import Image, display
-from langgraph.graph import END, StateGraph
+from langgraph.graph import START, END, StateGraph
 from .flow.nodes import (
     retrieve, 
     generate,
+    generate_denial,
     grade_documents,
     web_search, 
-    grade_question_safety,
+    set_question_safe,
+    set_question_unsafe,
 )
 from .flow.edges import (
     route_question,
@@ -28,12 +30,14 @@ class GraphState(TypedDict):
 
     Attributes:
         question: question
+        question_safety: safety of answering question
         generation: LLM generation
         web_search: whether to add search
         documents: list of documents
     """
 
     question: str
+    question_safety: str
     generation: str
     web_search: str
     documents: List[str]
@@ -41,21 +45,36 @@ class GraphState(TypedDict):
 workflow = StateGraph(GraphState)
 
 # Define the nodesl. This adds the nodes, order does not matter
-#workflow.add_node("safety_check_question", safety_check_question)  # check question's safety
+# workflow.add_node( node name, node function ) 
+workflow.add_node("set_question_safe", set_question_safe)  # set question as safe to answer
+workflow.add_node("set_question_unsafe", set_question_unsafe)  # set question as unsafe to answer
 workflow.add_node("websearch", web_search)  # web search
 workflow.add_node("retrieve", retrieve)  # retrieve
 workflow.add_node("grade_documents", grade_documents)  # grade documents
-workflow.add_node("generate", generate)  # generatae
+workflow.add_node("generate", generate)  # generate
+workflow.add_node("generate_denial", generate_denial)  # generate denial
 
-# Build graph
+# Build graph connecting nodes with edges, conditional edges and entry point
 workflow.set_conditional_entry_point(
-    route_question,
+    safety_check_question, # conditional function 
     {
+        # conditional result : next node
+        "safe": "set_question_safe",
+        "unsafe": "set_question_unsafe",
+    },
+)
+
+workflow.add_edge("set_question_unsafe", "generate_denial")
+workflow.add_edge("generate_denial", END)
+workflow.add_conditional_edges(
+    "set_question_safe", #node name
+    route_question, # conditional function
+    {
+        # conditional result : next node
         "websearch": "websearch",
         "vectorstore": "retrieve",
     },
 )
-
 workflow.add_edge("retrieve", "grade_documents")
 workflow.add_conditional_edges(
     "grade_documents",
