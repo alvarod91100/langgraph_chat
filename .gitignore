@@ -3,7 +3,7 @@ tests.ipynb
 models/
 chroma.sqlite3
 local/data/embeddings/database/chroma/*
-
+*.png
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
