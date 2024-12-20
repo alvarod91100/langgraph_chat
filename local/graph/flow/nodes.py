@@ -71,7 +71,7 @@ def generate(state):
     Returns:
         state (dict): New key added to state, generation, that contains LLM generation
     """
-    print("---GENERATE---")
+    print("---GENERATING ANSWER CANDIDATE---")
     question = state["question"]
     documents = state["documents"]
 
