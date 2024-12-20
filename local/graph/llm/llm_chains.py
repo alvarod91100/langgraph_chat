@@ -39,6 +39,19 @@ answer_generator_prompt = PromptTemplate(
 )
 answer_generator_chain = answer_generator_prompt | answer_generator_llm | StrOutputParser()
 
+# =====================================
+# ===== ANSWER DENIAL GENERATOR =======
+# =====================================
+answer_denial_generator_specs = llm_prompts.get("answer_denial_generator")
+answer_denial_generator_prompt = PromptTemplate(
+    template= answer_denial_generator_specs["prompt"],
+    input_variables= answer_denial_generator_specs["inputs"]
+)
+answer_denial_generator_llm = ChatOllama(
+    model=os.getenv("LLM_MODEL"), 
+    temperature=0
+)
+answer_denial_generator_chain = answer_denial_generator_prompt | answer_denial_generator_llm | StrOutputParser()
 
 # =====================================
 # ======== HALLUCINATION GRADER =======
@@ -86,3 +99,18 @@ source_router_prompt = PromptTemplate(
     input_variables = source_router_specs["inputs"]
 )
 source_router_chain = source_router_prompt | source_router_llm | JsonOutputParser()
+
+# =====================================
+# ========= SAFETY CENSORER ===========
+# =====================================
+safety_censorer_specs = llm_prompts.get("safety_censorer")
+safety_censorer_llm = ChatOllama(
+    model=os.getenv("LLM_MODEL"), 
+    format="json", 
+    temperature=0
+)
+safety_censorer_prompt = PromptTemplate(
+    template = safety_censorer_specs["prompt"],
+    input_variables = safety_censorer_specs["inputs"],
+)
+safety_censorer_chain = safety_censorer_prompt | safety_censorer_llm | JsonOutputParser()
