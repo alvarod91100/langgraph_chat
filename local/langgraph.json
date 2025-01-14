@@ -1,0 +1,13 @@
+{
+    "name": "fleet-agent",
+    "version": "0.1.0",
+    "description": "-----",
+    "graphs": {
+        "Fleet Agent": "./graph/__init__.py:app"
+      },
+    "python_version": "3.11",
+    "dependencies": {
+        "file": "requirements.txt"
+    },
+    "env": ".env"
+}
