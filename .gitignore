@@ -9,7 +9,7 @@ local/data/embeddings/database/chroma/*
 __pycache__/
 *.py[cod]
 *$py.class
-
+.langgraph_api/
 # C extensions
 *.so
 
